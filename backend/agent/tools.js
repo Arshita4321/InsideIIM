@@ -52,11 +52,9 @@ export const scrapeUrlTool = tool(
       });
 
       const $ = cheerio.load(response.data);
-      // Remove scripts, styles, nav, footer
       $("script, style, nav, footer, header, aside").remove();
 
       const text = $("body").text().replace(/\s+/g, " ").trim();
-      // Return first 2000 chars to avoid token overflow
       return text.slice(0, 2000) || "Could not extract content from page.";
     } catch (err) {
       return `Could not scrape URL: ${err.message}`;
@@ -84,7 +82,6 @@ export const screenerSearchTool = tool(
         return "Company not found on Screener.in (may not be a listed Indian company).";
       }
 
-      // Get first result details
       const first = results[0];
       const detailUrl = `https://www.screener.in/company/${first.url}/`;
 
@@ -96,7 +93,6 @@ export const screenerSearchTool = tool(
       const $ = cheerio.load(detailResponse.data);
       const ratios = {};
 
-      // Extract key financial ratios
       $("#top-ratios li").each((_, el) => {
         const name = $(el).find(".name").text().trim();
         const val = $(el).find(".value").text().trim();

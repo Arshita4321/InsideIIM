@@ -18,7 +18,9 @@ router.post("/", async (req, res) => {
     const result = await runResearchAgent(company.trim());
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`✅ Research complete in ${duration}s — Verdict: ${result.verdict?.verdict}`);
+    console.log(
+      `✅ Research complete in ${duration}s — Verdict: ${result.verdict?.verdict}`
+    );
 
     res.json({
       company: company.trim(),

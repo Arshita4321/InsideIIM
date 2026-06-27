@@ -11,24 +11,31 @@ When researching a company, you MUST investigate:
 
 Be analytical, data-driven, and honest. Always cite what you found.`;
 
-export const VERDICT_PROMPT = `Based on all the research gathered, provide a final investment verdict in this EXACT JSON format:
+// FIX: Shortened field descriptions to reduce token usage and prevent truncation.
+// Keep string values concise (1-2 sentences max per field).
+export const VERDICT_PROMPT = `Based on all the research gathered, provide a final investment verdict as valid JSON.
 
+CRITICAL RULES:
+- Return ONLY the JSON object, no markdown, no explanation before or after
+- Keep all string values SHORT (under 100 characters each)
+- Arrays should have 3 items maximum
+- Do NOT use line breaks inside string values
+
+Required format:
 {
-  "verdict": "INVEST" or "PASS",
-  "confidence": <number 0-100>,
-  "summary": "<2-3 sentence executive summary>",
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "risks": ["risk 1", "risk 2", "risk 3"],
+  "verdict": "INVEST",
+  "confidence": 75,
+  "summary": "One or two sentence summary of the company and verdict.",
+  "strengths": ["strength one", "strength two", "strength three"],
+  "risks": ["risk one", "risk two", "risk three"],
   "financials": {
-    "revenue": "<revenue info or 'Not found'>",
-    "funding": "<funding info or 'Not found'>",
-    "valuation": "<valuation or 'Not found'>",
-    "profitability": "<profitability status or 'Unknown'>"
+    "revenue": "Revenue figure or Not found",
+    "funding": "Funding info or Not found",
+    "valuation": "Valuation or Not found",
+    "profitability": "Profitable or Not profitable or Unknown"
   },
-  "marketPosition": "<market position description>",
-  "founderBackground": "<founder/CEO background>",
-  "recentNews": "<key recent developments>",
-  "recommendation": "<detailed 3-4 sentence investment recommendation>"
-}
-
-Return ONLY valid JSON, no markdown, no extra text.`;
+  "marketPosition": "Brief market position description.",
+  "founderBackground": "Brief founder or CEO background.",
+  "recentNews": "One key recent development.",
+  "recommendation": "Two sentence investment recommendation."
+}`;

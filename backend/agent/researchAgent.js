@@ -1,12 +1,34 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ALL_TOOLS } from "./tools.js";
 import { SYSTEM_PROMPT, VERDICT_PROMPT } from "./prompts.js";
 
+// ── Helper: safely convert any LangChain message content to a plain string ───
+// Gemini sometimes returns content as an array of content blocks, not a string.
+// Rendering a raw array/object as React children causes a blank page crash.
+function contentToString(content) {
+  if (!content) return "";
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((block) => {
+        if (typeof block === "string") return block;
+        if (block && typeof block === "object") {
+          // Handle {type: "text", text: "..."} blocks from Gemini
+          return block.text || block.content || JSON.stringify(block);
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join(" ");
+  }
+  // Fallback for any other type
+  return String(content);
+}
+
 // ── State shape ──────────────────────────────────────────────────────────────
-// LangGraph tracks this object as the graph moves through nodes.
 const graphState = {
   messages: {
     value: (existing, incoming) => [...existing, ...incoming],
@@ -35,23 +57,26 @@ function buildLLM() {
   return new ChatGoogleGenerativeAI({
     model: "gemini-2.5-flash",
     apiKey: process.env.GEMINI_API_KEY,
-    temperature: 0.3,
+    temperature: 0.1,   // Lower temp = more consistent verdicts
     maxOutputTokens: 2048,
     topP: 0.95,
   });
 }
 
 // ── Node 1: Research Node ────────────────────────────────────────────────────
-// The LLM decides what to search; ToolNode executes; loop continues until done.
 async function researchNode(state) {
   const llm = buildLLM();
   const llmWithTools = llm.bindTools(ALL_TOOLS);
 
   const response = await llmWithTools.invoke(state.messages);
 
+  // FIX: Always convert content to a plain string before storing it.
+  // Gemini can return content as an array of blocks — rendering that as JSX crashes React.
+  const contentStr = contentToString(response.content);
+
   const thoughtStep = {
     type: "thinking",
-    content: response.content || "Deciding next steps...",
+    content: contentStr || "Deciding next search steps…",
     toolCalls: (response.tool_calls || []).map((tc) => ({
       tool: tc.name,
       input: tc.args,
@@ -65,21 +90,19 @@ async function researchNode(state) {
     iterationCount: state.iterationCount + 1,
   };
 }
+
 // ── Node 2: Tool Execution Node ──────────────────────────────────────────────
 const toolNode = new ToolNode(ALL_TOOLS);
 
 async function executeTools(state) {
   const result = await toolNode.invoke(state);
 
-  // Extract tool results for thought steps
   const toolMessages = result.messages || [];
   const toolSteps = toolMessages.map((msg) => ({
     type: "tool_result",
     tool: msg.name || "unknown",
-    content:
-      typeof msg.content === "string"
-        ? msg.content.slice(0, 300)
-        : JSON.stringify(msg.content).slice(0, 300),
+    // FIX: Also sanitize tool result content — it can be an array too
+    content: contentToString(msg.content).slice(0, 400),
     timestamp: new Date().toISOString(),
   }));
 
@@ -90,69 +113,80 @@ async function executeTools(state) {
 }
 
 // ── Node 3: Verdict Node ─────────────────────────────────────────────────────
-// After research is complete, synthesise everything into a structured verdict.
 async function verdictNode(state) {
   const llm = buildLLM();
 
   const toolContents = state.messages
-    .filter(m => m._getType && m._getType() === "tool")
-    .map(m => typeof m.content === "string" ? m.content : JSON.stringify(m.content))
+    .filter((m) => m._getType && m._getType() === "tool")
+    .map((m) => contentToString(m.content))
     .join("\n\n");
 
   const verdictMessages = [
     new SystemMessage(SYSTEM_PROMPT),
-    new HumanMessage(`Research findings:\n${toolContents}\n\n${VERDICT_PROMPT}`),
+    new HumanMessage(
+      `Research findings:\n${toolContents}\n\n${VERDICT_PROMPT}`
+    ),
   ];
 
   try {
     const response = await llm.invoke(verdictMessages);
-    let text = response.content.trim();
+    // FIX: response.content may be an array here too — always convert first
+    let text = contentToString(response.content).trim();
 
-    // Clean markdown
+    // Strip markdown fences
     text = text.replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
 
     const verdict = JSON.parse(text);
 
     return {
       finalVerdict: verdict,
-      thoughtSteps: [{
-        type: "verdict",
-        content: `Final Verdict: ${verdict.verdict} (${verdict.confidence}%)`,
-        timestamp: new Date().toISOString(),
-      }],
+      thoughtSteps: [
+        {
+          type: "verdict",
+          // FIX: ensure this is always a plain string
+          content: `Final Verdict: ${String(verdict.verdict)} (${String(verdict.confidence)}% confidence)`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
   } catch (err) {
-    console.error("Verdict parsing failed:", err);
+    console.error("Verdict parsing failed:", err.message);
     return {
       finalVerdict: {
         verdict: "PASS",
         confidence: 30,
-        summary: "Failed to generate structured verdict.",
+        summary: "Failed to generate structured verdict. Please try again.",
         strengths: [],
-        risks: ["Error in final analysis"],
-        financials: { revenue: "N/A", funding: "N/A", valuation: "N/A", profitability: "N/A" },
+        risks: ["Analysis error — retry recommended"],
+        financials: {
+          revenue: "N/A",
+          funding: "N/A",
+          valuation: "N/A",
+          profitability: "N/A",
+        },
         marketPosition: "Unknown",
         founderBackground: "Unknown",
         recentNews: "Unknown",
-        recommendation: "Analysis encountered an error. Please try again."
+        recommendation: "Analysis encountered an error. Please retry.",
       },
-      thoughtSteps: [{
-        type: "verdict",
-        content: "Verdict generation failed",
-        timestamp: new Date().toISOString(),
-      }],
+      thoughtSteps: [
+        {
+          type: "verdict",
+          content: "Verdict generation failed — JSON parse error",
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
   }
 }
 
 // ── Routing logic ─────────────────────────────────────────────────────────────
-// If the LLM called tools → run them. If done or max iterations → verdict.
 function shouldContinue(state) {
   const lastMessage = state.messages[state.messages.length - 1];
   const hasToolCalls =
     lastMessage?.tool_calls && lastMessage.tool_calls.length > 0;
 
-  if (state.iterationCount >= 6) return "verdict"; // safety cap
+  if (state.iterationCount >= 6) return "verdict";
   if (hasToolCalls) return "tools";
   return "verdict";
 }
@@ -168,7 +202,7 @@ function buildGraph() {
       tools: "tools",
       verdict: "verdict",
     })
-    .addEdge("tools", "research") // loop back after tool use
+    .addEdge("tools", "research")
     .addEdge("verdict", END);
 
   return graph.compile();
