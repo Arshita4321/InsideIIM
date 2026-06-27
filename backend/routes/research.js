@@ -1,5 +1,6 @@
 import express from "express";
 import { runResearchAgent } from "../agent/researchAgent.js";
+import { saveResearch } from "../db.js";
 
 const router = express.Router();
 
@@ -18,15 +19,14 @@ router.post("/", async (req, res) => {
     const result = await runResearchAgent(company.trim());
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(
-      `✅ Research complete in ${duration}s — Verdict: ${result.verdict?.verdict}`
-    );
+    console.log(`✅ Research complete in ${duration}s — Verdict: ${result.verdict?.verdict}`);
 
-    res.json({
-      company: company.trim(),
-      ...result,
-      duration,
-    });
+    // Save to Supabase (non-blocking — never fail the response because of DB)
+    saveResearch({ company: company.trim(), verdict: result.verdict, duration })
+      .then((row) => console.log(`💾 Saved to Supabase id=${row?.id}`))
+      .catch((err) => console.warn("⚠️  Supabase save failed (non-fatal):", err.message));
+
+    res.json({ company: company.trim(), ...result, duration });
   } catch (err) {
     console.error("Research failed:", err.message);
     res.status(500).json({
