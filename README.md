@@ -44,6 +44,8 @@ Create a `.env` file:
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxx
 SERPER_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 PORT=5000
+SUPABASE_URL=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SUPABASE_ANON_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 Install dependencies and start:
