@@ -1,12 +1,13 @@
+import axios from "axios";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import SearchBar from "../components/SearchBar";
-import LoadingSteps from "../components/LoadingSteps";
-import VerdictBanner from "../components/VerdictBanner";
-import ResearchCard from "../components/ResearchCard";
 import AgentThoughts from "../components/AgentThoughts";
 import HistorySidebar from "../components/HistorySidebar";
+import LoadingSteps from "../components/LoadingSteps";
+import ResearchCard from "../components/ResearchCard";
+import SearchBar from "../components/SearchBar";
+import VerdictBanner from "../components/VerdictBanner";
 
 const API = "/api";
 
@@ -88,21 +89,40 @@ export default function Research() {
         </button>
 
         {/* Back to home link */}
-        <button
-          onClick={() => navigate("/")}
-          style={{
-            background: "var(--surface2)",
-            border: "1px solid var(--border)",
-            color: "var(--muted)",
-            borderRadius: 8,
-            padding: "7px 16px",
-            fontSize: 13,
-            cursor: "pointer",
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          ← Home
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <motion.button
+            onClick={() => navigate("/compare")}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border)",
+              color: "var(--muted)",
+              borderRadius: 8,
+              padding: "7px 16px",
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
+            }}
+            whileHover={{ borderColor: "var(--accent)", color: "var(--text)" }}
+          >
+            Compare Companies
+          </motion.button>
+          <motion.button
+            onClick={() => navigate("/")}
+            style={{
+              background: "var(--surface2)",
+              border: "1px solid var(--border)",
+              color: "var(--muted)",
+              borderRadius: 8,
+              padding: "7px 16px",
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
+            }}
+            whileHover={{ borderColor: "var(--accent)", color: "var(--text)" }}
+          >
+            ← Home
+          </motion.button>
+        </div>
       </header>
 
       {/* ── Body: Sidebar + Main ── */}

@@ -1,4 +1,4 @@
-// src/components/AgentThoughts.jsx
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
 const TYPE_COLOR = {
@@ -13,9 +13,6 @@ const TYPE_ICON = {
   verdict: "⚖️",
 };
 
-// Safety helper: convert anything to a renderable string.
-// This is the second line of defence — the backend now always sends strings,
-// but this guard means the component can never crash even if a non-string slips through.
 function safeString(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
@@ -40,16 +37,18 @@ export default function AgentThoughts({ steps }) {
   if (!steps || steps.length === 0) return null;
 
   return (
-    <div
+    <motion.div
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 14,
         overflow: "hidden",
       }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.4 }}
     >
-      {/* Toggle Header */}
-      <button
+      <motion.button
         onClick={() => setOpen((o) => !o)}
         style={{
           width: "100%",
@@ -65,6 +64,7 @@ export default function AgentThoughts({ steps }) {
           fontWeight: 600,
           fontFamily: "Inter, sans-serif",
         }}
+        whileHover={{ backgroundColor: "var(--surface2)" }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span>🤖</span> Agent Thought Process
@@ -81,123 +81,132 @@ export default function AgentThoughts({ steps }) {
             {steps.length} steps
           </span>
         </span>
-        <span
+        <motion.span
           style={{
             color: "var(--muted)",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.25s",
             display: "inline-block",
           }}
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
         >
           ▼
-        </span>
-      </button>
+        </motion.span>
+      </motion.button>
 
-      {/* Steps Timeline */}
-      {open && (
-        <div
-          style={{ padding: "0 24px 24px", borderTop: "1px solid var(--border)" }}
-        >
-          <div
-            style={{
-              paddingTop: 20,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            style={{ padding: "0 24px 24px", borderTop: "1px solid var(--border)" }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
           >
-            {steps.map((step, i) => {
-              // Safely extract all fields — never trust raw data to be a string
-              const stepType = safeString(step.type) || "thinking";
-              const stepContent = safeString(step.content);
-              const stepTool = step.tool ? safeString(step.tool) : null;
-              const toolCalls = Array.isArray(step.toolCalls)
-                ? step.toolCalls
-                : [];
+            <div
+              style={{
+                paddingTop: 20,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {steps.map((step, i) => {
+                const stepType = safeString(step.type) || "thinking";
+                const stepContent = safeString(step.content);
+                const stepTool = step.tool ? safeString(step.tool) : null;
+                const toolCalls = Array.isArray(step.toolCalls)
+                  ? step.toolCalls
+                  : [];
 
-              return (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 14,
-                    paddingLeft: 12,
-                    borderLeft: `2px solid ${
-                      TYPE_COLOR[stepType] || "var(--border)"
-                    }`,
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    {/* Step label */}
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: TYPE_COLOR[stepType] || "var(--muted)",
-                        fontWeight: 600,
-                        marginBottom: 4,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      {TYPE_ICON[stepType] || "•"}{" "}
-                      {stepType.replace("_", " ")}
-                      {stepTool && ` — ${stepTool}`}
-                    </div>
-
-                    {/* Step content — always a plain string now */}
-                    {stepContent && (
-                      <p
+                return (
+                  <motion.div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      gap: 14,
+                      paddingLeft: 12,
+                      borderLeft: `2px solid ${
+                        TYPE_COLOR[stepType] || "var(--border)"
+                      }`,
+                    }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.4 }}
+                    whileHover={{ x: 4 }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div
                         style={{
-                          fontSize: 13,
-                          color: "var(--text)",
-                          lineHeight: 1.6,
-                          marginBottom: toolCalls.length > 0 ? 8 : 0,
-                          wordBreak: "break-word",
+                          fontSize: 12,
+                          color: TYPE_COLOR[stepType] || "var(--muted)",
+                          fontWeight: 600,
+                          marginBottom: 4,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
                         }}
                       >
-                        {stepContent}
-                      </p>
-                    )}
-
-                    {/* Tool call badges */}
-                    {toolCalls.length > 0 && (
-                      <div
-                        style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
-                      >
-                        {toolCalls.map((tc, j) => {
-                          const toolName = safeString(tc.tool);
-                          let inputStr = "";
-                          try {
-                            inputStr = JSON.stringify(tc.input || {}).slice(0, 60);
-                          } catch {
-                            inputStr = "…";
-                          }
-                          return (
-                            <span
-                              key={j}
-                              style={{
-                                padding: "3px 10px",
-                                background: "var(--surface2)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 6,
-                                fontSize: 12,
-                                fontFamily: "JetBrains Mono, monospace",
-                                color: "var(--yellow)",
-                              }}
-                            >
-                              {toolName}({inputStr}…)
-                            </span>
-                          );
-                        })}
+                        {TYPE_ICON[stepType] || "•"}{" "}
+                        {stepType.replace("_", " ")}
+                        {stepTool && ` — ${stepTool}`}
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
+
+                      {stepContent && (
+                        <p
+                          style={{
+                            fontSize: 13,
+                            color: "var(--text)",
+                            lineHeight: 1.6,
+                            marginBottom: toolCalls.length > 0 ? 8 : 0,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {stepContent}
+                        </p>
+                      )}
+
+                      {toolCalls.length > 0 && (
+                        <div
+                          style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
+                        >
+                          {toolCalls.map((tc, j) => {
+                            const toolName = safeString(tc.tool);
+                            let inputStr = "";
+                            try {
+                              inputStr = JSON.stringify(tc.input || {}).slice(0, 60);
+                            } catch {
+                              inputStr = "…";
+                            }
+                            return (
+                              <motion.span
+                                key={j}
+                                style={{
+                                  padding: "3px 10px",
+                                  background: "var(--surface2)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: 6,
+                                  fontSize: 12,
+                                  fontFamily: "JetBrains Mono, monospace",
+                                  color: "var(--yellow)",
+                                }}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: j * 0.05 }}
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                {toolName}({inputStr}…)
+                              </motion.span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

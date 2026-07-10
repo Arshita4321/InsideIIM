@@ -1,8 +1,13 @@
-// src/components/ResearchCard.jsx
+import { motion } from "framer-motion";
 
 function Section({ title, children }) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <motion.div
+      style={{ marginBottom: 20 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div
         style={{
           fontSize: 11,
@@ -16,15 +21,14 @@ function Section({ title, children }) {
         {title}
       </div>
       {children}
-    </div>
+    </motion.div>
   );
 }
 
 function Tag({ text, color }) {
-  // FIX: Guard against empty/null tags
   if (!text) return null;
   return (
-    <span
+    <motion.span
       style={{
         display: "inline-block",
         padding: "4px 12px",
@@ -52,14 +56,17 @@ function Tag({ text, color }) {
         marginRight: 8,
         marginBottom: 8,
       }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ scale: 1.05 }}
+      transition={{ duration: 0.3 }}
     >
       {text}
-    </span>
+    </motion.span>
   );
 }
 
 export default function ResearchCard({ verdict }) {
-  // FIX: Full guard on verdict object
   if (!verdict) return null;
 
   const {
@@ -73,20 +80,26 @@ export default function ResearchCard({ verdict }) {
   } = verdict;
 
   return (
-    <div
+    <motion.div
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 14,
         padding: "28px",
       }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 24 }}>
+      <motion.h2
+        style={{ fontSize: 17, fontWeight: 700, marginBottom: 24 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
         Research Findings
-      </h2>
+      </motion.h2>
 
-      {/* Financials */}
-      {/* FIX: Guard financials object before calling Object.entries */}
       {financials && Object.keys(financials).length > 0 && (
         <Section title="Financials">
           <div
@@ -96,8 +109,8 @@ export default function ResearchCard({ verdict }) {
               gap: 10,
             }}
           >
-            {Object.entries(financials).map(([key, val]) => (
-              <div
+            {Object.entries(financials).map(([key, val], i) => (
+              <motion.div
                 key={key}
                 style={{
                   padding: "12px 16px",
@@ -105,6 +118,10 @@ export default function ResearchCard({ verdict }) {
                   borderRadius: 8,
                   border: "1px solid var(--border)",
                 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + i * 0.1 }}
+                whileHover={{ borderColor: "var(--accent)", y: -2 }}
               >
                 <div
                   style={{
@@ -116,18 +133,15 @@ export default function ResearchCard({ verdict }) {
                 >
                   {key}
                 </div>
-                {/* FIX: Guard val */}
                 <div style={{ fontSize: 14, fontWeight: 500 }}>
                   {val || "N/A"}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </Section>
       )}
 
-      {/* Strengths & Risks */}
-      {/* FIX: Only render grid if at least one has items */}
       {((strengths && strengths.length > 0) || (risks && risks.length > 0)) && (
         <div
           style={{
@@ -139,7 +153,6 @@ export default function ResearchCard({ verdict }) {
         >
           {strengths && strengths.length > 0 && (
             <Section title="Strengths">
-              {/* FIX: Use (strengths || []) defensively */}
               {(strengths || []).map((s, i) => (
                 <Tag key={i} text={s} color="green" />
               ))}
@@ -155,29 +168,30 @@ export default function ResearchCard({ verdict }) {
         </div>
       )}
 
-      {/* Text fields */}
       {[
         { label: "Market Position", value: marketPosition },
         { label: "Founder / Management", value: founderBackground },
         { label: "Recent News", value: recentNews },
         { label: "Recommendation", value: recommendation },
       ].map(
-        ({ label, value }) =>
-          // FIX: Only render if value exists and is non-empty
+        ({ label, value }, i) =>
           value && value !== "Unknown" && (
             <Section key={label} title={label}>
-              <p
+              <motion.p
                 style={{
                   color: "var(--text)",
                   fontSize: 14,
                   lineHeight: 1.8,
                 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 + i * 0.1 }}
               >
                 {value}
-              </p>
+              </motion.p>
             </Section>
           )
       )}
-    </div>
+    </motion.div>
   );
 }
