@@ -1,8 +1,9 @@
-import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import researchRoutes from "./routes/research.js";
+import express from "express";
+import compareRoutes from "./routes/compare.js";
 import historyRoutes from "./routes/history.js";
+import researchRoutes from "./routes/research.js";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use("/api/research", researchRoutes);
 app.use("/api/history", historyRoutes);
+app.use("/api/compare", compareRoutes);
 
 app.get("/health", (_, res) => res.json({ status: "ok" }));
 
